@@ -1,6 +1,6 @@
 # MCP Tool Inventory — Openings OS
 
-**Endpoint:** `http://127.0.0.1:8501/mcp` (Streamable HTTP)  
+**Endpoint:** `http://127.0.0.1:8501/mcp` (Streamable HTTP)
 **Authentication:** Optional `Authorization: Bearer <token>` or `X-Openings-Token: <token>`
 
 ---

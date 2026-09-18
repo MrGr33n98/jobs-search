@@ -1,9 +1,9 @@
 # Production Readiness Audit — Personal Job Search OS
 
-**Classification:** P0 Release Gate Audit  
-**Target VM:** `64.225.59.107` (Ubuntu 24.04 LTS)  
-**Target Path:** `/opt/job-search`  
-**Audit Date:** 2026-09-18  
+**Classification:** P0 Release Gate Audit
+**Target VM:** `64.225.59.107` (Ubuntu 24.04 LTS)
+**Target Path:** `/opt/job-search`
+**Audit Date:** 2026-09-18
 
 ---
 
@@ -24,5 +24,5 @@
 
 ## 2. Risk & Impact Analysis
 
-- **Isolation from Co-located Workloads:** `job-search` uses dedicated project naming, distinct container names (`job-search-web`, `job-search-scheduler`), dedicated network (`job-search-internal`), and dedicated volume (`job-search-data`). Existing workloads (`Avalia Solar`, `n8n`, `Nginx Proxy Manager`) on VM `64.225.59.107` remain completely untouched.
+- **Isolation from Co-located Workloads:** `job-search` uses dedicated project naming, distinct container names (`openings-web`, `openings-scheduler`), dedicated network (`job-search-internal`), and dedicated volume (`job-search-data`). Existing workloads (`Avalia Solar`, `n8n`, `Nginx Proxy Manager`) on VM `64.225.59.107` remain completely untouched.
 - **Resource Limits:** CPU capped at 1.0 core for web, 0.5 core for scheduler; Memory capped at 1024M web, 512M scheduler to protect VM host stability.

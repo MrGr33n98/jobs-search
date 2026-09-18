@@ -1,7 +1,7 @@
 # ADR 001: Architecture & Responsibility Model for n8n and Job Search MCP
 
-**Status:** Accepted  
-**Date:** 2026-09-18  
+**Status:** Accepted
+**Date:** 2026-09-18
 
 ## Context
 The system consists of two primary operational domains:

@@ -18,7 +18,7 @@ if docker volume inspect job-search-data &>/dev/null; then
       -v job-search-data:/data:ro \
       -v "$BACKUP_DIR":/backup \
       alpine tar -czf "/backup/openings_backup_${TIMESTAMP}.tar.gz" -C /data .
-    
+
     echo "--> Computing sha256 checksum..."
     sha256sum "$BACKUP_FILE" > "${BACKUP_FILE}.sha256"
     echo "==> Backup completed successfully: ${BACKUP_FILE}"

@@ -9,19 +9,19 @@ Rollback mechanisms are designed to safely revert application code without riski
 ## 1. Automatic Application Rollback (CD Pipeline)
 
 If any of the following occur during CD deployment:
-- `job-search-web` fails to start
+- `web service` fails to start
 - Healthcheck times out (120 seconds)
 - SQLite `PRAGMA integrity_check` fails
 - Post-deploy job count drops below pre-deploy baseline
 - REST / MCP smoke tests fail
 
-The CD script **automatically reverts** the image tag in `docker-compose.production.yml` to the previous image and restarts `job-search-web`.
+The CD script **automatically reverts** the image tag in `docker-compose.production.yml` to the previous image and restarts `web service`.
 
 ---
 
 ## 2. Manual Application Rollback (CLI / SSH)
 
-To manually roll back `job-search-web` to a previous release tag:
+To manually roll back `web service` to a previous release tag:
 
 ```bash
 ssh root@64.225.59.107
@@ -43,7 +43,7 @@ docker compose -f docker-compose.production.yml up -d web
 
 > [!CAUTION]
 > **DATABASE RESTORATION OVERWRITES RECENT DATA**
-> 
+>
 > Only restore data if database corruption or catastrophic data loss has occurred.
 
 To restore from a pre-deploy backup:
@@ -70,7 +70,7 @@ docker run --rm \
 docker compose -f docker-compose.production.yml up -d web
 
 # 5. Verify integrity
-docker exec job-search-web openings healthcheck
+docker exec openings-web openings healthcheck
 ```
 
 ---

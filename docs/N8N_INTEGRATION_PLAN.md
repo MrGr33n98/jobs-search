@@ -4,7 +4,7 @@
 Phase 2 describes optional automation workflows utilizing n8n without modifying existing n8n production instances in Phase 1.
 
 ## Workflows:
-1. **`JOB_SEARCH_DAILY_DIGEST`**:
+1. **`OPENINGS_DAILY_DIGEST`**:
    - Trigger: Daily Cron at 08:00 AM.
    - Action: Query Openings MCP (`list_jobs` with `statuses=["new"]`, `min_score=40`).
    - Output: Send summary digest to candidate via Telegram/Slack webhook.

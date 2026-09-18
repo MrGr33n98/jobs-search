@@ -1,8 +1,8 @@
 # GO / NO-GO Release Gate Decision Document — Wave DEPLOY-01
 
-**System:** Personal Job Search OS (`openings`)  
-**Target VM:** `64.225.59.107` (Ubuntu 24.04 LTS)  
-**Evaluation Date:** 2026-09-18  
+**System:** Personal Job Search OS (`openings`)
+**Target VM:** `64.225.59.107` (Ubuntu 24.04 LTS)
+**Evaluation Date:** 2026-09-18
 
 ---
 

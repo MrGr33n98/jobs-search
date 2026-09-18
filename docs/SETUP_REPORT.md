@@ -1,8 +1,8 @@
 # Final Setup & Validation Report — Personal Job Search OS
 
-**Owner:** Felipe Henrique Morais Almeida  
-**Repository:** `/home/felipe/Desktop/curriculo-2026/job-apply/openings`  
-**Date:** 2026-09-18  
+**Owner:** Felipe Henrique Morais Almeida
+**Repository:** `/home/felipe/Desktop/curriculo-2026/job-apply/openings`
+**Date:** 2026-09-18
 
 ---
 

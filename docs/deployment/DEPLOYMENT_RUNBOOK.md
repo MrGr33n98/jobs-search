@@ -1,7 +1,7 @@
 # Deployment Runbook — Wave DEPLOY-02 (Future VM Execution)
 
-**Target Host:** `64.225.59.107` (Ubuntu 24.04 LTS)  
-**Target Root:** `/opt/job-search`  
+**Target Host:** `64.225.59.107` (Ubuntu 24.04 LTS)
+**Target Root:** `/opt/job-search`
 
 ---
 

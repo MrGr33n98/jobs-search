@@ -1,6 +1,6 @@
 # VM Pre-Flight Inspection Runbook — Read-Only Commands
 
-**Target Host:** `64.225.59.107` (Ubuntu 24.04 LTS)  
+**Target Host:** `64.225.59.107` (Ubuntu 24.04 LTS)
 **Execution Phase:** Future Deployment Wave Pre-Flight Audit
 
 ```bash

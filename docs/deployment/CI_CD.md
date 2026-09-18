@@ -48,7 +48,7 @@ Developer / Feature Branch
 - **Image Tagging:** Immutable Git SHA tags (`ghcr.io/<owner>/openings:<git-sha>`). `latest` tag is updated simultaneously.
 - **Production Guarantees:**
   - Mandatory pre-deploy database tarball backup with SHA256 verification.
-  - Recreates `job-search-web` ONLY. `job-search-scheduler` remains **STOPPED**.
+  - Recreates `web` container ONLY. `scheduler` remains **STOPPED**.
   - Enforces SQLite `PRAGMA integrity_check => ok` and non-decreasing job count invariants.
   - Automatic rollback on container health timeout or smoke test failure.
 

@@ -22,7 +22,7 @@ Configure these secrets in **Repository Settings -> Environments -> production -
 | :--- | :--- | :--- |
 | `PRODUCTION_HOST` | IPv4 address of the production VM | `64.225.59.107` |
 | `PRODUCTION_USER` | SSH deployment user | `root` |
-| `PRODUCTION_SSH_KEY` | Private SSH key authorized on VM | `-----BEGIN OPENSSH PRIVATE KEY-----...` |
+| `PRODUCTION_SSH_KEY` | Private SSH key authorized on VM | `<YOUR_OPENSSH_PRIVATE_KEY_CONTENTS>` |
 
 ---
 

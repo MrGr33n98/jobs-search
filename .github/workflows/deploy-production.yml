@@ -81,19 +81,19 @@ jobs:
           key: ${{ secrets.PRODUCTION_SSH_KEY }}
           script: |
             set -Eeuo pipefail
-            
+
             IMAGE_TAG="${{ needs.build-and-push.outputs.image_tag }}"
             SHORT_SHA="${{ needs.build-and-push.outputs.short_sha }}"
             DEPLOY_PATH="/opt/job-search"
-            
+
             echo "=================================================================="
             echo "INITIATING CONTROLLED PRODUCTION DEPLOYMENT"
             echo "Target Image: $IMAGE_TAG"
             echo "Commit SHA: $SHORT_SHA"
             echo "=================================================================="
-            
+
             cd "$DEPLOY_PATH"
-            
+
             # 1. Pre-deploy verification
             echo "--> [1/9] Pre-deploy System & Workload Verification..."
             AVAIL_GB=$(df -B1G / | awk 'NR==2 {print $4}')
@@ -101,32 +101,32 @@ jobs:
                 echo "ERROR: Insufficient disk space ($AVAIL_GB GB available, minimum 5 GB required)."
                 exit 1
             fi
-            
+
             # Record current jobs count baseline before deploy
             PREDEPLOY_JOBS=$(docker exec job-search-web openings healthcheck 2>/dev/null | grep -o '"jobs_count":[0-9]*' | cut -d: -f2 || echo "0")
             echo "--> Pre-deploy Jobs Count Baseline: $PREDEPLOY_JOBS"
-            
+
             # 2. Mandatory Pre-deploy Database Backup
             echo "--> [2/9] Mandatory Pre-deploy Database Snapshot..."
             TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
             BACKUP_FILE="${DEPLOY_PATH}/backups/job-search-predeploy-${TIMESTAMP}-${SHORT_SHA}.tar.gz"
-            
+
             docker run --rm \
               -v job-search-data:/data:ro \
               -v "${DEPLOY_PATH}/backups":/backup \
               alpine tar -czf "/backup/job-search-predeploy-${TIMESTAMP}-${SHORT_SHA}.tar.gz" -C /data .
-            
+
             sha256sum "$BACKUP_FILE" > "${BACKUP_FILE}.sha256"
             if ! sha256sum -c "${BACKUP_FILE}.sha256"; then
                 echo "CRITICAL ERROR: Pre-deploy backup checksum verification FAILED. Aborting deployment."
                 exit 1
             fi
             echo "--> Pre-deploy backup verified: $BACKUP_FILE"
-            
+
             # 3. Pull immutable container image
             echo "--> [3/9] Pulling immutable Docker image..."
             docker pull "$IMAGE_TAG"
-            
+
             # 4. Save release metadata
             echo "--> [4/9] Writing release metadata..."
             mkdir -p "${DEPLOY_PATH}/releases/${SHORT_SHA}"
@@ -139,20 +139,20 @@ jobs:
               "backup_path": "${BACKUP_FILE}"
             }
             EOF
-            
+
             # 5. Update Compose image & recreate WEB ONLY
             echo "--> [5/9] Updating Compose file and recreating WEB container..."
             PREV_IMAGE=$(grep 'image:' docker-compose.production.yml | head -n 1 | awk '{print $2}')
-            
+
             sed -i "s|image: .*|image: ${IMAGE_TAG}|g" docker-compose.production.yml
-            
+
             if ! docker compose -f docker-compose.production.yml up -d web; then
                 echo "ERROR: Container recreation failed. Executing automatic rollback..."
                 sed -i "s|image: .*|image: ${PREV_IMAGE}|g" docker-compose.production.yml
                 docker compose -f docker-compose.production.yml up -d web
                 exit 1
             fi
-            
+
             # 6. Bounded Health Check Wait Loop
             echo "--> [6/9] Waiting for container health check (max 120s)..."
             HEALTHY=0
@@ -165,7 +165,7 @@ jobs:
                 echo "--> Waiting for healthcheck... ($i/24, current: $STATUS)"
                 sleep 5
             done
-            
+
             if [ "$HEALTHY" -ne 1 ]; then
                 echo "CRITICAL ERROR: Healthcheck timed out. Executing automatic rollback..."
                 sed -i "s|image: .*|image: ${PREV_IMAGE}|g" docker-compose.production.yml
@@ -173,7 +173,7 @@ jobs:
                 exit 1
             fi
             echo "--> Web container is HEALTHY."
-            
+
             # 7. Database Integrity & Count Invariant Check
             echo "--> [7/9] Verifying database integrity and row count invariants..."
             INTEGRITY=$(docker exec job-search-web python3 -c "import sqlite3; conn = sqlite3.connect('/data/db/openings.db'); print(conn.cursor().execute('PRAGMA integrity_check;').fetchone()[0])" 2>/dev/null || echo "failed")
@@ -183,7 +183,7 @@ jobs:
                 docker compose -f docker-compose.production.yml up -d web
                 exit 1
             fi
-            
+
             POSTDEPLOY_JOBS=$(docker exec job-search-web openings healthcheck | grep -o '"jobs_count":[0-9]*' | cut -d: -f2)
             echo "--> Post-deploy Jobs Count: $POSTDEPLOY_JOBS (Pre-deploy: $PREDEPLOY_JOBS)"
             if [ "$POSTDEPLOY_JOBS" -lt "$PREDEPLOY_JOBS" ]; then
@@ -192,22 +192,22 @@ jobs:
                 docker compose -f docker-compose.production.yml up -d web
                 exit 1
             fi
-            
+
             # 8. Post-deployment Smoke Tests
             echo "--> [8/9] Executing Post-deployment Smoke Tests..."
             curl -fsS http://127.0.0.1:8501/health > /dev/null
             curl -fsS https://jobs.avaliasolar.com.br/health > /dev/null
-            
+
             # 9. Verify Scheduler is STOPPED & Port 8501 is Private
             echo "--> [9/9] Verifying Scheduler and Port Isolation..."
             if docker ps --filter name=job-search-scheduler | grep -q "job-search-scheduler"; then
                 echo "ERROR: Scheduler is running unexpectedly!"
                 exit 1
             fi
-            
+
             BIND_CHECK=$(ss -lntp | grep ':8501' | awk '{print $4}')
             echo "--> Port 8501 Bind: $BIND_CHECK"
-            
+
             echo "=================================================================="
             echo "PRODUCTION DEPLOYMENT COMPLETED SUCCESSFULLY"
             echo "Image: $IMAGE_TAG"
