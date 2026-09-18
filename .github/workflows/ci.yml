@@ -214,6 +214,28 @@ jobs:
           # (numpy, markdownify) are not something pip can re-resolve.
           uvx --python 3.12 --from 'pip-audit==2.9.0' pip-audit --no-deps --disable-pip -r .tmp/requirements-audit.txt
 
+      - name: Validate Repository & Compose Security Rules
+        run: |
+          echo "--> Checking for unsafe 0.0.0.0:8501 port bindings in production Compose..."
+          if grep -q "0.0.0.0:8501" deploy/docker-compose.production.yml 2>/dev/null; then
+            echo "ERROR: Production Compose file contains unsafe 0.0.0.0:8501 binding!"
+            exit 1
+          fi
+
+          echo "--> Checking for committed secret .env files..."
+          if git ls-files | grep -E '^\.env$' | grep -v '\.example$'; then
+            echo "ERROR: Committed secret .env file found!"
+            exit 1
+          fi
+
+          echo "--> Checking for committed private SSH key files..."
+          if git ls-files | grep -E 'id_rsa|id_ed25519' | grep -v '\.example$'; then
+            echo "ERROR: Committed private SSH key file found!"
+            exit 1
+          fi
+
+          echo "--> Repository security rules PASSED."
+
   docker:
     # Runs on PRs and on push to main so a direct push (skipping a PR) still
     # validates the image build, healthcheck, compose topology, and web smoke.

@@ -64,6 +64,19 @@ docker-compose.override.yml
 .env
 .env.*
 !.env.example
+deploy/.env
+deploy/.env.*
+!.env.production.example
+
+# Candidate and company local configs
+config/candidate_profile.yaml
+config/companies.yaml
+config/profile_review_required.yaml
+
+# Backups and archives
+backups/
+*.tar.gz
+*.sha256
 
 # Local agent settings
 .claude/

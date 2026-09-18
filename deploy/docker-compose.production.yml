@@ -1,0 +1,77 @@
+name: job-search
+
+networks:
+  job-search-internal:
+    name: job-search-internal
+    driver: bridge
+    enable_ipv6: false
+
+volumes:
+  job-search-data:
+    name: job-search-data
+    external: true
+
+services:
+  web:
+    image: vincenzoimp/openings@sha256:4b5881de0abbc0d4ddee9de8ffc004477b8bdadda25c0997906a04945247bed6
+    container_name: job-search-web
+    restart: unless-stopped
+    command: ["openings", "web"]
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
+    ports:
+      - "${OPENINGS_WEB_BIND:-127.0.0.1}:${OPENINGS_WEB_PORT:-8501}:8501"
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      - job-search-data:/data
+      - ./settings.yaml:/data/config/settings.yaml:ro
+    networks:
+      - job-search-internal
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1024M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    healthcheck:
+      test: ["CMD", "openings", "healthcheck"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  scheduler:
+    image: vincenzoimp/openings@sha256:4b5881de0abbc0d4ddee9de8ffc004477b8bdadda25c0997906a04945247bed6
+    container_name: job-search-scheduler
+    restart: unless-stopped
+    command: ["openings", "scheduler"]
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      - job-search-data:/data
+      - ./settings.yaml:/data/config/settings.yaml:ro
+    networks:
+      - job-search-internal
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+    healthcheck:
+      test: ["CMD", "openings", "healthcheck"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
