@@ -36,22 +36,6 @@ const COLUMN_ACCENT: Record<JobStatus, string> = {
 export function PipelineView() {
   const route = useRoute();
   const applicationMode = route.params.get("pipeline") === "applications";
-  const actions = useJobActions();
-  const filter = (route.params.get("q") ?? "").trim().toLowerCase();
-  const statuses = PIPELINE_STATUSES;
-
-  const query = useJobsInfinite({ statuses, sort: "updated" }, !applicationMode);
-  const { hasNextPage, isFetchingNextPage, fetchNextPage } = query;
-  useEffect(() => {
-    if (hasNextPage && !isFetchingNextPage) {
-      void fetchNextPage();
-    }
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
-
-  const [column, setColumn] = useState(0);
-  const [row, setRow] = useState(0);
-  const [statusFor, setStatusFor] = useState<JobSummary | null>(null);
-  const scroller = useRef<HTMLDivElement>(null);
 
   if (applicationMode) {
     return (
@@ -69,6 +53,28 @@ export function PipelineView() {
       </section>
     );
   }
+
+  return <LegacyPipelineView />;
+}
+
+function LegacyPipelineView() {
+  const route = useRoute();
+  const actions = useJobActions();
+  const filter = (route.params.get("q") ?? "").trim().toLowerCase();
+  const statuses = PIPELINE_STATUSES;
+
+  const query = useJobsInfinite({ statuses, sort: "updated" }, true);
+  const { hasNextPage, isFetchingNextPage, fetchNextPage } = query;
+  useEffect(() => {
+    if (hasNextPage && !isFetchingNextPage) {
+      void fetchNextPage();
+    }
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  const [column, setColumn] = useState(0);
+  const [row, setRow] = useState(0);
+  const [statusFor, setStatusFor] = useState<JobSummary | null>(null);
+  const scroller = useRef<HTMLDivElement>(null);
 
   const columns = useMemo(() => {
     const grouped = new Map<JobStatus, JobSummary[]>(statuses.map((status) => [status, []]));

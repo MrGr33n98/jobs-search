@@ -3,7 +3,6 @@ import { useMemo } from "react";
 import type { ApplicationStage } from "../../api/types";
 import { navigate } from "../../app/router";
 import { Badge } from "../../components/Badge";
-import { Button } from "../../components/Button";
 import { EmptyState, ErrorNotice, Skeleton } from "../../components/EmptyState";
 import { useApplications } from "../shared/queries";
 
