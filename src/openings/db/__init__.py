@@ -10,6 +10,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from openings.db.base import MAX_QUERY_LIMIT, SQLITE_VAR_LIMIT, Store
+from openings.db.career import CareerMixin
 from openings.db.embeddings import EmbeddingsMixin
 from openings.db.events import EventsMixin
 from openings.db.jobs import (
@@ -23,9 +24,9 @@ from openings.db.jobs import (
     UpsertResult,
 )
 from openings.db.material import MaterialMixin
+from openings.db.migrations import current_version, migrate, rollback
 from openings.db.retention import ReconciliationReport, RetentionMixin
 from openings.db.runs import RunsMixin
-from openings.db.schema import SCHEMA
 
 __all__ = [
     "JOB_SORTS",
@@ -39,11 +40,21 @@ __all__ = [
     "RescoreReport",
     "ScoreSummary",
     "UpsertResult",
+    "current_version",
+    "migrate",
+    "rollback",
 ]
 
 
 class JobDatabase(
-    JobsMixin, MaterialMixin, EventsMixin, EmbeddingsMixin, RunsMixin, RetentionMixin, Store
+    CareerMixin,
+    JobsMixin,
+    MaterialMixin,
+    EventsMixin,
+    EmbeddingsMixin,
+    RunsMixin,
+    RetentionMixin,
+    Store,
 ):
     """SQLite store for jobs, tracking state, embeddings and run history."""
 
@@ -55,8 +66,7 @@ class JobDatabase(
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         with self._connection() as conn:
             conn.execute("PRAGMA journal_mode=WAL")
-            conn.executescript(SCHEMA)
-            conn.commit()
+            migrate(conn)
 
     def reset_all(self) -> None:
         """Delete everything, including protected jobs and run history."""

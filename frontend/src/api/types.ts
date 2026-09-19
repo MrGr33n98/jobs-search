@@ -296,6 +296,154 @@ export interface DashboardAuthResponse {
   token_required: boolean;
 }
 
+export interface SearchProfile {
+  id: string;
+  name: string;
+  description: string | null;
+  enabled: boolean;
+  target_roles: string[];
+  role_aliases: string[];
+  include_keywords: string[];
+  exclude_keywords: string[];
+  skills_priority: string[];
+  locations: string[];
+  countries: string[];
+  location_types: string[];
+  remote_scope: string;
+  remote_eligibility: string;
+  salary_min: number | null;
+  salary_currency: string | null;
+  seniority_levels: string[];
+  employment_types: string[];
+  sources: string[];
+  freshness_days: number | null;
+  scoring_weights: Record<string, number>;
+  created_at: string;
+  updated_at: string;
+  last_run_at: string | null;
+}
+
+export interface SearchProfileListResponse {
+  items: SearchProfile[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface SearchProfileCapabilities {
+  sources: { id: string; available: boolean; enabled: boolean; reason: string | null }[];
+  location_types: string[];
+  remote_scopes: string[];
+  remote_eligibilities: string[];
+  employment_types: string[];
+}
+
+export interface SearchProfileMatch {
+  job: JobSummary;
+  match: {
+    id: string;
+    job_id: string;
+    search_profile_id: string;
+    score: number;
+    relevance_score: number;
+    eligibility: string;
+    match_reasons: string[];
+    missing_requirements: string[];
+    score_breakdown: Record<string, number>;
+    score_version: string;
+    scoring_version: string;
+    review_status: string;
+    reviewed_at: string | null;
+    scored_at: string;
+  };
+}
+
+export type ReviewStatus = "new" | "interested" | "saved" | "dismissed";
+export type ApplicationStage =
+  | "interested"
+  | "preparing"
+  | "ready_to_apply"
+  | "applied"
+  | "interviewing"
+  | "offer"
+  | "rejected"
+  | "withdrawn";
+
+export interface ApplicationRecord {
+  id: string;
+  job_id: string;
+  stage: ApplicationStage;
+  source_search_profile_id: string | null;
+  source_job_match_id: string | null;
+  created_at: string;
+  updated_at: string;
+  applied_confirmed_at: string | null;
+}
+
+export interface ApplicationListItem {
+  application: ApplicationRecord;
+  job: JobSummary;
+  source_search_profile_name: string | null;
+}
+
+export interface ApplicationListResponse {
+  items: ApplicationListItem[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface SearchProfileMatchesResponse {
+  items: SearchProfileMatch[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface SearchProfileRun {
+  id: string;
+  search_profile_id: string;
+  status: string;
+  started_at: string | null;
+  finished_at: string | null;
+  sources: string[];
+  queries: string[];
+  jobs_found: number;
+  jobs_new: number;
+  jobs_matched: number;
+  errors: string[];
+  duration_seconds: number | null;
+}
+
+export interface SearchProfileRunsResponse {
+  items: SearchProfileRun[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface SearchProfilePayload {
+  name: string;
+  description?: string | null;
+  enabled: boolean;
+  target_roles: string[];
+  role_aliases: string[];
+  include_keywords: string[];
+  exclude_keywords: string[];
+  skills_priority: string[];
+  locations: string[];
+  countries: string[];
+  location_types: string[];
+  remote_scope: string;
+  remote_eligibility: string;
+  salary_min: number | null;
+  salary_currency: string | null;
+  seniority_levels: string[];
+  employment_types: string[];
+  sources: string[];
+  freshness_days: number | null;
+}
+
 export interface SettingsSummary {
   version: string;
   profile: { name: string; headline: string; target: string };

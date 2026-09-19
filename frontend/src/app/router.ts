@@ -1,13 +1,14 @@
 import { useMemo, useSyncExternalStore } from "react";
 
-export type View = "inbox" | "pipeline" | "companies" | "runs" | "system";
+export type View = "inbox" | "pipeline" | "companies" | "search-profiles" | "runs" | "system";
 
 export const VIEWS: { id: View; label: string; key: string }[] = [
   { id: "inbox", label: "Inbox", key: "1" },
   { id: "pipeline", label: "Pipeline", key: "2" },
   { id: "companies", label: "Companies", key: "3" },
-  { id: "runs", label: "Runs", key: "4" },
-  { id: "system", label: "System", key: "5" },
+  { id: "search-profiles", label: "Search Profiles", key: "4" },
+  { id: "runs", label: "Runs", key: "5" },
+  { id: "system", label: "System", key: "6" },
 ];
 
 export interface Route {

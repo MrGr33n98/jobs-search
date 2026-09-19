@@ -17,6 +17,7 @@ import { relativeDays } from "../shared/format";
 import { STATUS_LABELS, STATUS_TONE } from "../shared/labels";
 import { rememberList } from "../shared/listContext";
 import { useJobsInfinite } from "../shared/queries";
+import { ApplicationPipeline } from "./ApplicationPipeline";
 import { StatusNoteDialog } from "../shared/StatusNoteDialog";
 
 const CLOSED = new Set<JobStatus>(["rejected", "withdrawn"]);
@@ -34,11 +35,12 @@ const COLUMN_ACCENT: Record<JobStatus, string> = {
 
 export function PipelineView() {
   const route = useRoute();
+  const applicationMode = route.params.get("pipeline") === "applications";
   const actions = useJobActions();
   const filter = (route.params.get("q") ?? "").trim().toLowerCase();
   const statuses = PIPELINE_STATUSES;
 
-  const query = useJobsInfinite({ statuses, sort: "updated" });
+  const query = useJobsInfinite({ statuses, sort: "updated" }, !applicationMode);
   const { hasNextPage, isFetchingNextPage, fetchNextPage } = query;
   useEffect(() => {
     if (hasNextPage && !isFetchingNextPage) {
@@ -50,6 +52,23 @@ export function PipelineView() {
   const [row, setRow] = useState(0);
   const [statusFor, setStatusFor] = useState<JobSummary | null>(null);
   const scroller = useRef<HTMLDivElement>(null);
+
+  if (applicationMode) {
+    return (
+      <section className="flex flex-col gap-3">
+        <header className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h1 className="text-lg font-semibold">Pipeline</h1>
+            <p className="text-sm text-fg-muted">Explicit applications and preparation stages.</p>
+          </div>
+          <Button variant="ghost" onClick={() => setParams({ pipeline: null })}>
+            Legacy job view
+          </Button>
+        </header>
+        <ApplicationPipeline />
+      </section>
+    );
+  }
 
   const columns = useMemo(() => {
     const grouped = new Map<JobStatus, JobSummary[]>(statuses.map((status) => [status, []]));
@@ -149,6 +168,9 @@ export function PipelineView() {
     <section className="flex flex-col gap-3">
       <header className="flex flex-wrap items-center gap-2">
         <h1 className="text-lg font-semibold">Pipeline</h1>
+        <Button size="sm" variant="ghost" onClick={() => setParams({ pipeline: "applications" })}>
+          Applications
+        </Button>
         <span className="tabular text-sm text-fg-muted">
           {query.isPending ? "" : `${query.total} jobs`}
         </span>

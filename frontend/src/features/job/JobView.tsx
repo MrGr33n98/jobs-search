@@ -29,7 +29,7 @@ import { formatSalary, jobMeta } from "../shared/format";
 import { STATUS_LABELS } from "../shared/labels";
 import { LabelsEditor } from "../shared/LabelsEditor";
 import { recallList } from "../shared/listContext";
-import { useJob } from "../shared/queries";
+import { useJob, useSearchProfileMatches } from "../shared/queries";
 import { StatusNoteDialog } from "../shared/StatusNoteDialog";
 import { ActivityTab } from "./ActivityTab";
 import { ApplicationTab } from "./ApplicationTab";
@@ -52,6 +52,8 @@ function isTab(value: string | null): value is Tab {
 export function JobView({ jobId }: { jobId: string }) {
   const route = useRoute();
   const query = useJob(jobId);
+  const profileId = route.params.get("profile");
+  const profileMatches = useSearchProfileMatches(profileId, { limit: 100 });
   const actions = useJobActions();
   const toast = useToast();
   const [editing, setEditing] = useState(false);
@@ -311,6 +313,33 @@ export function JobView({ jobId }: { jobId: string }) {
         </div>
         <LabelsEditor jobIds={[job.job_id]} labels={job.labels} />
       </header>
+
+      {profileId && profileMatches.data?.items.find((item) => item.job.job_id === job.job_id)
+        ? (() => {
+            const match = profileMatches.data!.items.find(
+              (item) => item.job.job_id === job.job_id,
+            )!.match;
+            return (
+              <section
+                className="rounded-lg border border-edge bg-surface p-3"
+                aria-label="Profile match"
+              >
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="text-sm font-semibold">Profile match</h2>
+                  <Badge tone="accent">{match.score} match score</Badge>
+                  <Badge>{match.eligibility}</Badge>
+                </div>
+                {match.match_reasons.length ? (
+                  <ul className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-fg-muted">
+                    {match.match_reasons.map((reason) => (
+                      <li key={reason}>✓ {reason}</li>
+                    ))}
+                  </ul>
+                ) : null}
+              </section>
+            );
+          })()
+        : null}
 
       <nav
         className="-mx-4 flex gap-1 overflow-x-auto border-b border-edge px-4 md:mx-0 md:px-0"

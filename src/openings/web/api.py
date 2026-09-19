@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hmac
 import os
+import sqlite3
 from typing import Any, Literal
 
 from fastapi import (
@@ -21,12 +22,26 @@ from fastapi.responses import FileResponse, PlainTextResponse
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from openings.application.attachments import AttachmentTooLarge
+from openings.application.career import (
+    CollectionUnavailable,
+    SearchProfileAlreadyRunning,
+    SearchProfileDisabled,
+    SearchProfileNotFound,
+)
+from openings.collection_profiles import CollectionPlanError
 from openings.application.jobs import VectorStoreUnavailableError
 from openings.application.models import AddJobCommand
+from openings.career import (
+    ApplicationStage,
+    LocationType,
+    RemoteEligibility,
+    RemoteScope,
+    ReviewStatus,
+)
 from openings.db import JOB_SORTS, SORT_DIRECTIONS, JobQuery
 from openings.models import POSTING_FIELDS, AttachmentKind, JobStatus, NoteKind
 from openings.settings_reference import get_settings_reference
-from openings.web.service import get_service
+from openings.web.service import get_career_service, get_service
 
 TOKEN_HEADER = "X-Openings-Token"
 
@@ -239,6 +254,85 @@ class ExportRequest(BaseModel):
     format: Literal["csv", "json"] = "csv"
     job_ids: list[str] | None = None
     filters: JobFilters | None = None
+
+
+class CandidateProfilePatch(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    display_name: str | None = Field(default=None, min_length=1)
+    headline: str | None = Field(default=None, min_length=1)
+    current_location: str | None = Field(default=None, min_length=1)
+    country: str | None = Field(default=None, min_length=1)
+    languages: list[str] | None = None
+    skills: list[str] | None = None
+    experience: list[dict[str, Any]] | None = None
+    education: list[dict[str, Any]] | None = None
+    certifications: list[str] | None = None
+    work_authorizations: list[str] | None = None
+    preferred_work_modes: list[str] | None = None
+    metadata: dict[str, Any] | None = None
+
+
+class SearchProfileCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: str = Field(min_length=1)
+    description: str | None = None
+    enabled: bool = False
+    target_roles: list[str] = Field(default_factory=list)
+    role_aliases: list[str] = Field(default_factory=list)
+    include_keywords: list[str] = Field(default_factory=list)
+    exclude_keywords: list[str] = Field(default_factory=list)
+    skills_priority: list[str] = Field(default_factory=list)
+    locations: list[str] = Field(default_factory=list)
+    countries: list[str] = Field(default_factory=list)
+    location_types: list[LocationType] = Field(default_factory=list)
+    remote_scope: RemoteScope = RemoteScope.UNKNOWN
+    remote_eligibility: RemoteEligibility = RemoteEligibility.UNKNOWN
+    salary_min: float | None = Field(default=None, ge=0)
+    salary_currency: str | None = None
+    seniority_levels: list[str] = Field(default_factory=list)
+    employment_types: list[str] = Field(default_factory=list)
+    sources: list[str] = Field(default_factory=list)
+    freshness_days: int | None = Field(default=None, ge=1)
+    scoring_weights: dict[str, int] = Field(default_factory=dict)
+
+
+class SearchProfilePatch(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: str | None = Field(default=None, min_length=1)
+    description: str | None = None
+    enabled: bool | None = None
+    target_roles: list[str] | None = None
+    role_aliases: list[str] | None = None
+    include_keywords: list[str] | None = None
+    exclude_keywords: list[str] | None = None
+    skills_priority: list[str] | None = None
+    locations: list[str] | None = None
+    countries: list[str] | None = None
+    location_types: list[LocationType] | None = None
+    remote_scope: RemoteScope | None = None
+    remote_eligibility: RemoteEligibility | None = None
+    salary_min: float | None = Field(default=None, ge=0)
+    salary_currency: str | None = None
+    seniority_levels: list[str] | None = None
+    employment_types: list[str] | None = None
+    sources: list[str] | None = None
+    freshness_days: int | None = Field(default=None, ge=1)
+    scoring_weights: dict[str, int] | None = None
+
+
+class ReviewMatchRequest(BaseModel):
+    review_status: ReviewStatus
+
+
+class ApplicationStageRequest(BaseModel):
+    stage: ApplicationStage
+
+
+def _profile_data(model: BaseModel, *, partial: bool = False) -> dict[str, Any]:
+    return model.model_dump(exclude_unset=partial)
 
 
 def _job_query(
@@ -606,6 +700,177 @@ def unblacklist_jobs(payload: JobIds) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 # Sources, runs, statistics, settings
 # ---------------------------------------------------------------------------
+
+
+@router.get("/candidate-profile")
+def get_candidate_profile() -> dict[str, Any]:
+    profile = get_career_service().get_candidate_profile()
+    return {"profile": profile.to_dict() if profile else None}
+
+
+@router.patch("/candidate-profile")
+def update_candidate_profile(payload: CandidateProfilePatch) -> dict[str, Any]:
+    try:
+        profile = get_career_service().update_candidate_profile(
+            _profile_data(payload, partial=True)
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return {"profile": profile.to_dict()}
+
+
+@router.get("/search-profiles")
+def list_search_profiles(
+    limit: int = Query(50, ge=1, le=1000), offset: int = Query(0, ge=0)
+) -> dict[str, Any]:
+    profiles, total = get_career_service().list_search_profiles(limit, offset)
+    return {
+        "items": [profile.to_dict() for profile in profiles],
+        "total": total,
+        "limit": limit,
+        "offset": offset,
+    }
+
+
+@router.post("/search-profiles", status_code=201)
+def create_search_profile(payload: SearchProfileCreate) -> dict[str, Any]:
+    try:
+        profile = get_career_service().create_search_profile(_profile_data(payload))
+    except sqlite3.IntegrityError as exc:
+        raise HTTPException(status_code=409, detail="search profile name already exists") from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return profile.to_dict()
+
+
+@router.get("/search-profiles/capabilities")
+def search_profile_capabilities() -> dict[str, Any]:
+    return get_career_service().capabilities()
+
+
+@router.get("/search-profiles/{profile_id}")
+def get_search_profile(profile_id: str) -> dict[str, Any]:
+    try:
+        return get_career_service().get_search_profile(profile_id).to_dict()
+    except SearchProfileNotFound as exc:
+        raise HTTPException(status_code=404, detail="Search profile not found") from exc
+
+
+@router.patch("/search-profiles/{profile_id}")
+def update_search_profile(profile_id: str, payload: SearchProfilePatch) -> dict[str, Any]:
+    changes = _profile_data(payload, partial=True)
+    if not changes:
+        raise HTTPException(status_code=422, detail="No editable field given")
+    try:
+        profile = get_career_service().update_search_profile(profile_id, changes)
+    except SearchProfileNotFound as exc:
+        raise HTTPException(status_code=404, detail="Search profile not found") from exc
+    except sqlite3.IntegrityError as exc:
+        raise HTTPException(status_code=409, detail="search profile name already exists") from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return profile.to_dict()
+
+
+@router.delete("/search-profiles/{profile_id}")
+def disable_search_profile(profile_id: str) -> dict[str, Any]:
+    try:
+        profile = get_career_service().disable_search_profile(profile_id)
+    except SearchProfileNotFound as exc:
+        raise HTTPException(status_code=404, detail="Search profile not found") from exc
+    return profile.to_dict()
+
+
+@router.get("/search-profiles/{profile_id}/matches")
+def search_profile_matches(
+    profile_id: str,
+    limit: int = Query(50, ge=1, le=1000),
+    offset: int = Query(0, ge=0),
+    min_score: int | None = Query(None, ge=0, le=100),
+    eligibility: RemoteEligibility | None = None,
+    review_status: ReviewStatus | None = None,
+) -> dict[str, Any]:
+    try:
+        return get_career_service().get_matches(
+            profile_id, limit, offset, min_score, eligibility.value if eligibility else None,
+            review_status.value if review_status else None,
+        )
+    except SearchProfileNotFound as exc:
+        raise HTTPException(status_code=404, detail="Search profile not found") from exc
+
+
+@router.patch("/search-profiles/{profile_id}/matches/{job_id}")
+def review_search_profile_match(
+    profile_id: str, job_id: str, payload: ReviewMatchRequest
+) -> dict[str, Any]:
+    try:
+        match = get_career_service().review_match(profile_id, job_id, payload.review_status)
+    except SearchProfileNotFound as exc:
+        raise HTTPException(status_code=404, detail="Search profile not found") from exc
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return {
+        "job_id": match.job_id,
+        "search_profile_id": match.search_profile_id,
+        "review_status": match.review_status.value,
+        "reviewed_at": match.reviewed_at.isoformat() if match.reviewed_at else None,
+    }
+
+
+@router.get("/search-profiles/{profile_id}/runs")
+def search_profile_runs(
+    profile_id: str,
+    limit: int = Query(50, ge=1, le=1000),
+    offset: int = Query(0, ge=0),
+) -> dict[str, Any]:
+    try:
+        return get_career_service().get_runs(profile_id, limit, offset)
+    except SearchProfileNotFound as exc:
+        raise HTTPException(status_code=404, detail="Search profile not found") from exc
+
+
+@router.get("/applications")
+def list_applications(
+    limit: int = Query(50, ge=1, le=1000), offset: int = Query(0, ge=0)
+) -> dict[str, Any]:
+    return get_career_service().list_applications(limit, offset)
+
+
+@router.post("/search-profiles/{profile_id}/matches/{job_id}/pipeline", status_code=201)
+def add_match_to_pipeline(profile_id: str, job_id: str) -> dict[str, Any]:
+    try:
+        application = get_career_service().add_to_pipeline(profile_id, job_id)
+    except SearchProfileNotFound as exc:
+        raise HTTPException(status_code=404, detail="Search profile not found") from exc
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return application.to_dict()
+
+
+@router.patch("/applications/{application_id}")
+def update_application_stage(
+    application_id: str, payload: ApplicationStageRequest
+) -> dict[str, Any]:
+    try:
+        return get_career_service().update_application_stage(application_id, payload.stage).to_dict()
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.post("/search-profiles/{profile_id}/run")
+def run_search_profile(profile_id: str) -> dict[str, Any]:
+    try:
+        return get_career_service().run_search_profile(profile_id).to_dict()
+    except SearchProfileNotFound as exc:
+        raise HTTPException(status_code=404, detail="Search profile not found") from exc
+    except SearchProfileDisabled as exc:
+        raise HTTPException(status_code=409, detail="Search profile is disabled") from exc
+    except SearchProfileAlreadyRunning as exc:
+        raise HTTPException(status_code=409, detail="Search profile already running") from exc
+    except CollectionPlanError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except CollectionUnavailable as exc:
+        raise HTTPException(status_code=501, detail=str(exc)) from exc
 
 
 @router.get("/sources")

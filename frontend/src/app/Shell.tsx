@@ -10,6 +10,7 @@ import {
   Plus,
   Settings,
   Sun,
+  Target,
 } from "lucide-react";
 
 import { Button } from "../components/Button";
@@ -27,6 +28,7 @@ const ICONS: Record<View, typeof Inbox> = {
   inbox: Inbox,
   pipeline: Kanban,
   companies: Building2,
+  "search-profiles": Target,
   runs: PlayCircle,
   system: Settings,
 };
@@ -66,9 +68,9 @@ export function Shell({ view, children }: { view: View; children: ReactNode }) {
     {
       key: "1",
       run: () => navigate({ view: "inbox", jobId: null, params: null }),
-      description: "Inbox, Pipeline, Companies, Runs, System",
+      description: "Inbox, Pipeline, Companies, Search Profiles, Runs, System",
       group: "Everywhere",
-      label: "1 … 5",
+      label: "1 … 6",
     },
     {
       key: "n",
@@ -200,7 +202,7 @@ export function Shell({ view, children }: { view: View; children: ReactNode }) {
       </main>
 
       <nav
-        className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-5 border-t border-edge bg-surface pb-[env(safe-area-inset-bottom)] md:hidden"
+        className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-6 border-t border-edge bg-surface pb-[env(safe-area-inset-bottom)] md:hidden"
         aria-label="Views"
       >
         {VIEWS.map((entry) => {

@@ -6,6 +6,7 @@ import { InboxView } from "../features/inbox/InboxView";
 import { JobView } from "../features/job/JobView";
 import { PipelineView } from "../features/pipeline/PipelineView";
 import { RunsView } from "../features/runs/RunsView";
+import { SearchProfilesView } from "../features/search-profiles/SearchProfilesView";
 import { SystemView } from "../features/system/SystemView";
 import { ConfirmProvider } from "./confirm";
 import { ErrorBoundary } from "./ErrorBoundary";
@@ -20,6 +21,7 @@ const VIEW_COMPONENTS: Record<View, () => React.JSX.Element> = {
   inbox: InboxView,
   pipeline: PipelineView,
   companies: CompaniesView,
+  "search-profiles": SearchProfilesView,
   runs: RunsView,
   system: SystemView,
 };

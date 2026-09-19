@@ -28,7 +28,7 @@ describe("App", () => {
     expect(await screen.findByRole("heading", { name: "Pipeline" })).toBeInTheDocument();
     expect(window.location.search).toBe("?view=pipeline");
 
-    fireEvent.keyDown(window, { key: "4" });
+    fireEvent.keyDown(window, { key: "5" });
     expect(await screen.findByRole("heading", { name: "Runs" })).toBeInTheDocument();
   });
 

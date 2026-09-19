@@ -51,6 +51,15 @@ export const keys = {
   labels: ["labels"] as const,
   attachments: (params: object) => ["attachments", params] as const,
   companyStatuses: (company: string) => ["company-statuses", company] as const,
+  searchProfiles: (params: { limit?: number; offset?: number } = {}) =>
+    ["search-profiles", params] as const,
+  searchProfile: (profileId: string) => ["search-profile", profileId] as const,
+  searchProfileCapabilities: ["search-profiles", "capabilities"] as const,
+  searchProfileMatches: (profileId: string, params: object) =>
+    ["search-profile-matches", profileId, params] as const,
+  searchProfileRuns: (profileId: string, params: object) =>
+    ["search-profile-runs", profileId, params] as const,
+  applications: (params: object = {}) => ["applications", params] as const,
 };
 
 export const PAGE_SIZE = 100;
@@ -167,6 +176,94 @@ export function useCompanyStatuses(company: string | null) {
     queryKey: keys.companyStatuses(company ?? ""),
     queryFn: () => api.companyStatuses(company as string),
     enabled: Boolean(company),
+  });
+}
+
+export function useSearchProfiles(params: { limit?: number; offset?: number } = {}) {
+  return useQuery({
+    queryKey: keys.searchProfiles(params),
+    queryFn: () => api.listSearchProfiles(params),
+  });
+}
+
+export function useSearchProfile(profileId: string | null) {
+  return useQuery({
+    queryKey: keys.searchProfile(profileId ?? ""),
+    queryFn: () => api.getSearchProfile(profileId as string),
+    enabled: Boolean(profileId),
+  });
+}
+
+export function useSearchProfileCapabilities() {
+  return useQuery({
+    queryKey: keys.searchProfileCapabilities,
+    queryFn: api.searchProfileCapabilities,
+    staleTime: 60_000,
+  });
+}
+
+export function useSearchProfileMatches(
+  profileId: string | null,
+  params: {
+    limit?: number;
+    offset?: number;
+    min_score?: number;
+    eligibility?: string;
+    review_status?: string;
+  } = {},
+) {
+  return useQuery({
+    queryKey: keys.searchProfileMatches(profileId ?? "", params),
+    queryFn: () => api.searchProfileMatches(profileId as string, params),
+    enabled: Boolean(profileId),
+  });
+}
+
+export function useApplications(params: { limit?: number; offset?: number } = {}) {
+  return useQuery({
+    queryKey: keys.applications(params),
+    queryFn: () => api.listApplications(params),
+  });
+}
+
+export function useProfileActions(profileId: string) {
+  const client = useQueryClient();
+  const toast = useToast();
+  const refresh = () =>
+    Promise.all([
+      client.invalidateQueries({ queryKey: ["search-profile-matches", profileId] }),
+      client.invalidateQueries({ queryKey: keys.applications() }),
+    ]);
+  const review = useMutation({
+    mutationFn: ({
+      jobId,
+      status,
+    }: {
+      jobId: string;
+      status: "new" | "interested" | "saved" | "dismissed";
+    }) => api.reviewSearchProfileMatch(profileId, jobId, status),
+    onSuccess: refresh,
+    onError: (error) => toast.push(describe(error), "error"),
+  });
+  const addToPipeline = useMutation({
+    mutationFn: (jobId: string) => api.addMatchToPipeline(profileId, jobId),
+    onSuccess: async () => {
+      await refresh();
+      toast.push("Added to Pipeline", "success");
+    },
+    onError: (error) => toast.push(describe(error), "error"),
+  });
+  return { review, addToPipeline };
+}
+
+export function useSearchProfileRuns(
+  profileId: string | null,
+  params: { limit?: number; offset?: number } = {},
+) {
+  return useQuery({
+    queryKey: keys.searchProfileRuns(profileId ?? "", params),
+    queryFn: () => api.searchProfileRuns(profileId as string, params),
+    enabled: Boolean(profileId),
   });
 }
 

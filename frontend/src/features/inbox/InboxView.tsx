@@ -16,7 +16,7 @@ import { Input, Select } from "../../components/Field";
 import { useJobActions } from "../shared/actions";
 import { JobList } from "../shared/JobList";
 import { LabelsEditor } from "../shared/LabelsEditor";
-import { useJobsInfinite } from "../shared/queries";
+import { useJobsInfinite, useSearchProfiles } from "../shared/queries";
 import { StatusNoteDialog } from "../shared/StatusNoteDialog";
 import { useSelection } from "../shared/useSelection";
 import { BulkBar } from "./BulkBar";
@@ -25,6 +25,7 @@ import { FilterDrawer } from "./FilterDrawer";
 import { activeFilterCount, clearedFilters, paramsToFilters } from "./filters";
 import { rememberList } from "../shared/listContext";
 import { useSemanticSearch } from "./useSemanticSearch";
+import { ProfileInbox } from "./ProfileInbox";
 
 const VISITED_KEY = "openings.inbox.visited-at";
 
@@ -58,6 +59,7 @@ export function InboxView() {
   const route = useRoute();
   const toast = useToast();
   const actions = useJobActions();
+  const profiles = useSearchProfiles();
   const search = useRef<HTMLInputElement>(null);
   const [lastVisit] = useState(readVisited);
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -79,6 +81,7 @@ export function InboxView() {
   }, []);
 
   const text = route.params.get("q") ?? "";
+  const profileId = route.params.get("profile");
   const semantic = text.startsWith("~");
   const filters = useMemo(() => paramsToFilters(route.params), [route.params]);
   const sort = (route.params.get("sort") as JobSort) || "score";
@@ -95,7 +98,7 @@ export function InboxView() {
     [text, semantic, sort, direction, filters],
   );
 
-  const listQuery = useJobsInfinite(params, !semantic);
+  const listQuery = useJobsInfinite(params, !semantic && !profileId);
   const semanticQuery = useSemanticSearch(semantic ? text.slice(1).trim() : "", ["new"]);
   const semanticItems = semanticQuery.data;
   const listItems = listQuery.items;
@@ -257,6 +260,18 @@ export function InboxView() {
   const filterCount = activeFilterCount(filters);
   const noResults = !loading && jobs.length === 0 && (text || filterCount > 0);
 
+  if (profileId) {
+    return (
+      <section className="flex flex-col gap-3">
+        <header>
+          <h1 className="text-lg font-semibold">Inbox</h1>
+          <p className="text-sm text-fg-muted">Review matches for one search strategy.</p>
+        </header>
+        <ProfileInbox profileId={profileId} />
+      </section>
+    );
+  }
+
   return (
     <section className="flex h-[calc(100dvh-8.5rem)] flex-col gap-3 md:h-[calc(100dvh-3rem)]">
       <header className="flex flex-col gap-2">
@@ -271,6 +286,21 @@ export function InboxView() {
             </Badge>
           ) : null}
         </div>
+        <label className="flex max-w-sm flex-col gap-1 text-xs font-medium text-fg-muted">
+          Search Profile
+          <Select
+            aria-label="Search Profile"
+            value=""
+            onChange={(event) => setParams({ profile: event.target.value || null })}
+          >
+            <option value="">All jobs · legacy view</option>
+            {profiles.data?.items.map((profile) => (
+              <option key={profile.id} value={profile.id}>
+                {profile.name}
+              </option>
+            ))}
+          </Select>
+        </label>
         <div className="grid grid-cols-[1fr_auto] gap-2 sm:flex sm:flex-wrap sm:items-center">
           <div className="relative min-w-0 sm:w-80">
             <Search

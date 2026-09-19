@@ -21,6 +21,17 @@ import type {
   ScoreDistribution,
   SemanticResult,
   SettingsSummary,
+  SearchProfile,
+  SearchProfileCapabilities,
+  SearchProfileListResponse,
+  SearchProfileMatchesResponse,
+  SearchProfilePayload,
+  SearchProfileRun,
+  SearchProfileRunsResponse,
+  ApplicationListResponse,
+  ApplicationRecord,
+  ApplicationStage,
+  ReviewStatus,
   SourceStatus,
   StatsResponse,
 } from "./types";
@@ -288,6 +299,58 @@ export const api = {
     request<FacetsResponse>(`/jobs/facets${buildQuery(params)}`),
   settings: () => request<SettingsSummary>("/settings"),
   settingsReference: async () => (await send("/settings/reference")).text(),
+
+  listSearchProfiles: (params: { limit?: number; offset?: number } = {}) =>
+    request<SearchProfileListResponse>(`/search-profiles${buildQuery(params)}`),
+  getSearchProfile: (profileId: string) =>
+    request<SearchProfile>(`/search-profiles/${encodeURIComponent(profileId)}`),
+  createSearchProfile: (payload: SearchProfilePayload) =>
+    request<SearchProfile>("/search-profiles", { method: "POST", json: payload }),
+  updateSearchProfile: (profileId: string, payload: Partial<SearchProfilePayload>) =>
+    request<SearchProfile>(`/search-profiles/${encodeURIComponent(profileId)}`, {
+      method: "PATCH",
+      json: payload,
+    }),
+  disableSearchProfile: (profileId: string) =>
+    request<SearchProfile>(`/search-profiles/${encodeURIComponent(profileId)}`, {
+      method: "DELETE",
+    }),
+  searchProfileCapabilities: () =>
+    request<SearchProfileCapabilities>("/search-profiles/capabilities"),
+  searchProfileMatches: (profileId: string, params: { limit?: number; offset?: number } = {}) =>
+    request<SearchProfileMatchesResponse>(
+      `/search-profiles/${encodeURIComponent(profileId)}/matches${buildQuery(params)}`,
+    ),
+  reviewSearchProfileMatch: (profileId: string, jobId: string, review_status: ReviewStatus) =>
+    request<{
+      job_id: string;
+      search_profile_id: string;
+      review_status: ReviewStatus;
+      reviewed_at: string | null;
+    }>(`/search-profiles/${encodeURIComponent(profileId)}/matches/${encodeURIComponent(jobId)}`, {
+      method: "PATCH",
+      json: { review_status },
+    }),
+  addMatchToPipeline: (profileId: string, jobId: string) =>
+    request<ApplicationRecord>(
+      `/search-profiles/${encodeURIComponent(profileId)}/matches/${encodeURIComponent(jobId)}/pipeline`,
+      { method: "POST" },
+    ),
+  searchProfileRuns: (profileId: string, params: { limit?: number; offset?: number } = {}) =>
+    request<SearchProfileRunsResponse>(
+      `/search-profiles/${encodeURIComponent(profileId)}/runs${buildQuery(params)}`,
+    ),
+  runSearchProfile: (profileId: string) =>
+    request<SearchProfileRun>(`/search-profiles/${encodeURIComponent(profileId)}/run`, {
+      method: "POST",
+    }),
+  listApplications: (params: { limit?: number; offset?: number } = {}) =>
+    request<ApplicationListResponse>(`/applications${buildQuery(params)}`),
+  updateApplicationStage: (applicationId: string, stage: ApplicationStage) =>
+    request<ApplicationRecord>(`/applications/${encodeURIComponent(applicationId)}`, {
+      method: "PATCH",
+      json: { stage },
+    }),
 
   exportJobs: async (params: JobListParams, format: ExportFormat): Promise<Download> => {
     const response = await send(
