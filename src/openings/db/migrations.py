@@ -166,7 +166,9 @@ def _drop_career_01f(conn: sqlite3.Connection) -> None:
 MIGRATIONS = (
     Migration(1, "legacy_schema_baseline", SCHEMA),
     Migration(2, "career_01a_domain_foundation", CAREER_01A_SCHEMA, _drop_career_01a),
-    Migration(3, "career_01f_review_and_application_foundation", CAREER_01F_SCHEMA, _drop_career_01f),
+    Migration(
+        3, "career_01f_review_and_application_foundation", CAREER_01F_SCHEMA, _drop_career_01f
+    ),
 )
 
 

@@ -285,8 +285,12 @@ class CareerMixin(Store):
             )
 
     def list_job_matches(
-        self, profile_id: str, limit: int = 50, offset: int = 0,
-        min_score: int | None = None, eligibility: str | None = None,
+        self,
+        profile_id: str,
+        limit: int = 50,
+        offset: int = 0,
+        min_score: int | None = None,
+        eligibility: str | None = None,
         review_status: str | None = None,
     ) -> tuple[list[dict[str, Job | JobMatch]], int]:
         limit = max(1, min(int(limit), 1000))
@@ -305,7 +309,11 @@ class CareerMixin(Store):
                 conditions.append("jm.review_status = ?")
                 query_params.append(review_status)
             where = " AND ".join(conditions)
-            total = int(conn.execute(f"SELECT COUNT(*) FROM job_matches jm WHERE {where}", query_params).fetchone()[0])
+            total = int(
+                conn.execute(
+                    f"SELECT COUNT(*) FROM job_matches jm WHERE {where}", query_params
+                ).fetchone()[0]
+            )
             rows = conn.execute(
                 f"SELECT {job_columns}, "
                 "jm.id AS match_id, jm.search_profile_id AS match_profile_id, "
@@ -371,16 +379,25 @@ class CareerMixin(Store):
                 source_job_match_id=COALESCE(applications.source_job_match_id,
                     excluded.source_job_match_id), updated_at=excluded.updated_at,
                 applied_confirmed_at=excluded.applied_confirmed_at""",
-                (data["id"], data["job_id"], data["stage"], data["source_search_profile_id"],
-                 data["source_job_match_id"], data["created_at"], data["updated_at"],
-                 data["applied_confirmed_at"]),
+                (
+                    data["id"],
+                    data["job_id"],
+                    data["stage"],
+                    data["source_search_profile_id"],
+                    data["source_job_match_id"],
+                    data["created_at"],
+                    data["updated_at"],
+                    data["applied_confirmed_at"],
+                ),
             )
             conn.commit()
         return self.get_application_by_job(application.job_id) or application
 
     def get_application(self, application_id: str) -> Application | None:
         with self._connection() as conn:
-            row = conn.execute("SELECT * FROM applications WHERE id = ?", (application_id,)).fetchone()
+            row = conn.execute(
+                "SELECT * FROM applications WHERE id = ?", (application_id,)
+            ).fetchone()
         return self._application_from_row(row) if row else None
 
     def get_application_by_job(self, job_id: str) -> Application | None:
@@ -423,9 +440,14 @@ class CareerMixin(Store):
             conn.execute(
                 "UPDATE applications SET stage = ?, updated_at = ?, applied_confirmed_at = ? "
                 "WHERE id = ?",
-                (updated.stage.value, updated.updated_at.isoformat(),
-                 updated.applied_confirmed_at.isoformat() if updated.applied_confirmed_at else None,
-                 updated.id),
+                (
+                    updated.stage.value,
+                    updated.updated_at.isoformat(),
+                    updated.applied_confirmed_at.isoformat()
+                    if updated.applied_confirmed_at
+                    else None,
+                    updated.id,
+                ),
             )
             conn.commit()
         return updated

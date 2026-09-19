@@ -102,8 +102,13 @@ class CareerApplicationService:
         return profile
 
     def get_matches(
-        self, profile_id: str, limit: int, offset: int, min_score: int | None = None,
-        eligibility: str | None = None, review_status: str | None = None,
+        self,
+        profile_id: str,
+        limit: int,
+        offset: int,
+        min_score: int | None = None,
+        eligibility: str | None = None,
+        review_status: str | None = None,
     ) -> dict[str, Any]:
         self.get_search_profile(profile_id)
         items, total = self.db.list_job_matches(
@@ -127,7 +132,8 @@ class CareerApplicationService:
                         "scoring_version": item["match"].scoring_version,
                         "review_status": item["match"].review_status.value,
                         "reviewed_at": item["match"].reviewed_at.isoformat()
-                        if item["match"].reviewed_at else None,
+                        if item["match"].reviewed_at
+                        else None,
                         "scored_at": item["match"].scored_at.isoformat(),
                     },
                 }
@@ -151,8 +157,11 @@ class CareerApplicationService:
         if job is None:
             raise LookupError("Job not found")
         match = next(
-            (item["match"] for item in self.db.list_job_matches(profile.id, 1000, 0)[0]
-             if item["match"].job_id == job_id),
+            (
+                item["match"]
+                for item in self.db.list_job_matches(profile.id, 1000, 0)[0]
+                if item["match"].job_id == job_id
+            ),
             None,
         )
         existing = self.db.get_application_by_job(job_id)
@@ -177,11 +186,13 @@ class CareerApplicationService:
                     and self.db.get_search_profile(application.source_search_profile_id)
                     else None
                 )
-                result.append({
-                    "application": application.to_dict(),
-                    "job": job.to_summary(),
-                    "source_search_profile_name": origin,
-                })
+                result.append(
+                    {
+                        "application": application.to_dict(),
+                        "job": job.to_summary(),
+                        "source_search_profile_name": origin,
+                    }
+                )
         return {"items": result, "total": total, "limit": limit, "offset": offset}
 
     def update_application_stage(self, application_id: str, stage: ApplicationStage) -> Application:

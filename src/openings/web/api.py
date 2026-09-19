@@ -792,7 +792,11 @@ def search_profile_matches(
 ) -> dict[str, Any]:
     try:
         return get_career_service().get_matches(
-            profile_id, limit, offset, min_score, eligibility.value if eligibility else None,
+            profile_id,
+            limit,
+            offset,
+            min_score,
+            eligibility.value if eligibility else None,
             review_status.value if review_status else None,
         )
     except SearchProfileNotFound as exc:
@@ -852,7 +856,9 @@ def update_application_stage(
     application_id: str, payload: ApplicationStageRequest
 ) -> dict[str, Any]:
     try:
-        return get_career_service().update_application_stage(application_id, payload.stage).to_dict()
+        return (
+            get_career_service().update_application_stage(application_id, payload.stage).to_dict()
+        )
     except LookupError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 

@@ -9,8 +9,12 @@ def test_review_is_profile_specific_and_dismiss_does_not_delete_job(client, runt
     runtime.db.save_search_profile(first)
     runtime.db.save_search_profile(second)
     runtime.db.upsert_jobs([job])
-    runtime.db.save_job_match(JobMatch(job_id=job.job_id, search_profile_id=first.id, relevance_score=90))
-    runtime.db.save_job_match(JobMatch(job_id=job.job_id, search_profile_id=second.id, relevance_score=20))
+    runtime.db.save_job_match(
+        JobMatch(job_id=job.job_id, search_profile_id=first.id, relevance_score=90)
+    )
+    runtime.db.save_job_match(
+        JobMatch(job_id=job.job_id, search_profile_id=second.id, relevance_score=20)
+    )
 
     response = client.patch(
         f"/api/search-profiles/{first.id}/matches/{job.job_id}",
@@ -39,9 +43,7 @@ def test_add_to_pipeline_is_explicit_and_duplicate_safe(client, runtime, job):
     assert first.json()["id"] == second.json()["id"]
     assert client.get("/api/applications").json()["total"] == 1
 
-    applied = client.patch(
-        f"/api/applications/{first.json()['id']}", json={"stage": "applied"}
-    )
+    applied = client.patch(f"/api/applications/{first.json()['id']}", json={"stage": "applied"})
     assert applied.status_code == 200
     assert applied.json()["stage"] == "applied"
     assert applied.json()["applied_confirmed_at"] is not None
@@ -51,6 +53,18 @@ def test_profile_match_filters_are_server_side(client, runtime, job):
     profile = SearchProfile(name="Filter profile")
     runtime.db.save_search_profile(profile)
     runtime.db.upsert_jobs([job])
-    runtime.db.save_job_match(JobMatch(job_id=job.job_id, search_profile_id=profile.id, relevance_score=88))
-    assert client.get(f"/api/search-profiles/{profile.id}/matches", params={"min_score": 90}).json()["total"] == 0
-    assert client.get(f"/api/search-profiles/{profile.id}/matches", params={"min_score": 80}).json()["total"] == 1
+    runtime.db.save_job_match(
+        JobMatch(job_id=job.job_id, search_profile_id=profile.id, relevance_score=88)
+    )
+    assert (
+        client.get(f"/api/search-profiles/{profile.id}/matches", params={"min_score": 90}).json()[
+            "total"
+        ]
+        == 0
+    )
+    assert (
+        client.get(f"/api/search-profiles/{profile.id}/matches", params={"min_score": 80}).json()[
+            "total"
+        ]
+        == 1
+    )

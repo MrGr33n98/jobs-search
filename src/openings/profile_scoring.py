@@ -60,8 +60,10 @@ def _role_match(title: str, profile: SearchProfile) -> tuple[int, str | None]:
             candidate = (70, role)
         else:
             continue
-        if best is None or candidate[0] > best[0] or (
-            candidate[0] == best[0] and candidate[1].casefold() < best[1].casefold()
+        if (
+            best is None
+            or candidate[0] > best[0]
+            or (candidate[0] == best[0] and candidate[1].casefold() < best[1].casefold())
         ):
             best = candidate
     return (best[0], f"Role matches {best[1]}") if best else (0, None)
@@ -113,7 +115,9 @@ def _weights(profile: SearchProfile) -> dict[str, int]:
 
 def _eligibility(job: Job, profile: SearchProfile) -> RemoteEligibility:
     location = _normalize(job.location)
-    profile_locations = tuple(_normalize(value) for value in (*profile.locations, *profile.countries))
+    profile_locations = tuple(
+        _normalize(value) for value in (*profile.locations, *profile.countries)
+    )
     remote = job.is_remote is True or "remote" in location
     if remote:
         if profile.remote_eligibility == RemoteEligibility.RESTRICTED:
@@ -123,19 +127,25 @@ def _eligibility(job: Job, profile: SearchProfile) -> RemoteEligibility:
         return RemoteEligibility.ELIGIBLE
     if profile.remote_eligibility == RemoteEligibility.ELIGIBLE and profile.location_types:
         return RemoteEligibility.RESTRICTED
-    if profile_locations and any(_contains(value, location) for value in profile_locations if value):
+    if profile_locations and any(
+        _contains(value, location) for value in profile_locations if value
+    ):
         return RemoteEligibility.ELIGIBLE
     if not location:
         return RemoteEligibility.UNKNOWN
     return RemoteEligibility.UNKNOWN
 
 
-def score(job: Job, search_profile: SearchProfile, candidate_profile: CandidateProfile | None = None) -> ProfileScoreResult:
+def score(
+    job: Job, search_profile: SearchProfile, candidate_profile: CandidateProfile | None = None
+) -> ProfileScoreResult:
     """Score one persisted job for one strategy without inventing candidate facts."""
     weights = _weights(search_profile)
     text = _job_text(job)
     role_quality, role_reason = _role_match(job.title, search_profile)
-    positive_terms = tuple(dict.fromkeys((*search_profile.include_keywords, *search_profile.skills_priority)))
+    positive_terms = tuple(
+        dict.fromkeys((*search_profile.include_keywords, *search_profile.skills_priority))
+    )
     keyword_hits = tuple(term for term in positive_terms if _contains(term, text))
     candidate_skills = tuple(candidate_profile.skills if candidate_profile else ())
     skill_hits = tuple(term for term in candidate_skills if _contains(term, text))
@@ -149,13 +159,18 @@ def score(job: Job, search_profile: SearchProfile, candidate_profile: CandidateP
     employment_signal = bool(
         search_profile.employment_types
         and job.job_type
-        and _normalize(job.job_type) in {_normalize(value) for value in search_profile.employment_types}
+        and _normalize(job.job_type)
+        in {_normalize(value) for value in search_profile.employment_types}
     )
     positive_total = sum(weights[key] for key in DEFAULT_WEIGHTS if key != "exclusions")
     raw = {
         "role": round(weights["role"] * role_quality / 100),
-        "keywords": round(weights["keywords"] * min(len(keyword_hits), 3) / max(1, min(len(positive_terms), 3))),
-        "skills": round(weights["skills"] * min(len(skill_hits), 3) / max(1, min(len(candidate_skills), 3))),
+        "keywords": round(
+            weights["keywords"] * min(len(keyword_hits), 3) / max(1, min(len(positive_terms), 3))
+        ),
+        "skills": round(
+            weights["skills"] * min(len(skill_hits), 3) / max(1, min(len(candidate_skills), 3))
+        ),
         "location": weights["location"] if location_signal else 0,
         "employment_type": weights["employment_type"] if employment_signal else 0,
         "exclusions": weights["exclusions"] if exclusions else 0,

@@ -6,7 +6,7 @@ test("creates and reviews a Search Profile without running collectors", async ({
     id: "e2e-profile",
     name: "Controlled E2E profile",
     description: null,
-    enabled: true,
+    enabled: false,
     target_roles: ["Mechanical Engineer"],
     role_aliases: [],
     include_keywords: [],
@@ -39,7 +39,7 @@ test("creates and reviews a Search Profile without running collectors", async ({
       },
     }),
   );
-  await page.route("**/api/search-profiles*", async (route) => {
+  await page.route(/\/api\/search-profiles(\/|$|\?)/, async (route) => {
     const request = route.request();
     if (request.url().includes("/capabilities")) {
       await route.fulfill({

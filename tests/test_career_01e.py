@@ -61,9 +61,7 @@ def test_alias_and_exclusion_are_deterministic():
     strategy = profile(
         target_roles=(), role_aliases=("Engenheiro Mecânico",), exclude_keywords=("internship",)
     )
-    result = score(
-        make_job(title="Engenheiro Mecânico", description="CAD internship"), strategy
-    )
+    result = score(make_job(title="Engenheiro Mecânico", description="CAD internship"), strategy)
     assert result.score < 100
     assert any("Excluded keyword" in reason for reason in result.match_reasons)
 
@@ -94,14 +92,26 @@ def test_same_job_can_have_independent_profile_scores(db):
     first = score(job, mechanical)
     second = score(job, devops)
     db.save_job_match(
-        JobMatch(job_id=job.job_id, search_profile_id=mechanical.id, relevance_score=first.score,
-                 eligibility=first.eligibility, match_reasons=first.match_reasons,
-                 score_breakdown=first.breakdown.to_dict(), score_version=first.scoring_version)
+        JobMatch(
+            job_id=job.job_id,
+            search_profile_id=mechanical.id,
+            relevance_score=first.score,
+            eligibility=first.eligibility,
+            match_reasons=first.match_reasons,
+            score_breakdown=first.breakdown.to_dict(),
+            score_version=first.scoring_version,
+        )
     )
     db.save_job_match(
-        JobMatch(job_id=job.job_id, search_profile_id=devops.id, relevance_score=second.score,
-                 eligibility=second.eligibility, match_reasons=second.match_reasons,
-                 score_breakdown=second.breakdown.to_dict(), score_version=second.scoring_version)
+        JobMatch(
+            job_id=job.job_id,
+            search_profile_id=devops.id,
+            relevance_score=second.score,
+            eligibility=second.eligibility,
+            match_reasons=second.match_reasons,
+            score_breakdown=second.breakdown.to_dict(),
+            score_version=second.scoring_version,
+        )
     )
     assert db.count_jobs() == 1
     assert db.count_job_matches() == 2
