@@ -41,7 +41,8 @@ test("creates and reviews a Search Profile without running collectors", async ({
   );
   await page.route(/\/api\/search-profiles(\/|$|\?)/, async (route) => {
     const request = route.request();
-    if (request.url().includes("/capabilities")) {
+    const pathname = new URL(request.url()).pathname;
+    if (pathname.endsWith("/capabilities")) {
       await route.fulfill({
         json: {
           sources: [{ id: "manual", available: true, enabled: true, reason: null }],
@@ -53,7 +54,11 @@ test("creates and reviews a Search Profile without running collectors", async ({
       });
       return;
     }
-    if (request.url().includes("/run")) {
+    if (pathname.endsWith("/runs")) {
+      await route.fulfill({ json: { items: [], total: 0, limit: 10, offset: 0 } });
+      return;
+    }
+    if (pathname.endsWith("/run")) {
       await route.fulfill({
         json: {
           id: "e2e-run",
@@ -77,15 +82,11 @@ test("creates and reviews a Search Profile without running collectors", async ({
       await route.fulfill({ status: 201, json: profile });
       return;
     }
-    if (request.url().endsWith("/e2e-profile")) {
+    if (pathname.endsWith("/e2e-profile")) {
       await route.fulfill({ json: profile });
       return;
     }
-    if (request.url().includes("/matches")) {
-      await route.fulfill({ json: { items: [], total: 0, limit: 10, offset: 0 } });
-      return;
-    }
-    if (request.url().includes("/runs")) {
+    if (pathname.endsWith("/matches")) {
       await route.fulfill({ json: { items: [], total: 0, limit: 10, offset: 0 } });
       return;
     }
@@ -102,6 +103,8 @@ test("creates and reviews a Search Profile without running collectors", async ({
   await expect(page.getByText("Você ainda não criou uma estratégia de busca.")).toBeVisible();
   await page.getByRole("button", { name: /Create first Search Profile/i }).click();
   await page.getByLabel("Name").fill("Controlled E2E profile");
+  await page.locator('input[placeholder="Add a target role"]').fill("Mechanical Engineer");
+  await page.getByRole("button", { name: "Add Target roles" }).click();
   await page.getByRole("button", { name: "Create Search Profile" }).click();
   await expect(page.getByRole("heading", { name: "Controlled E2E profile" })).toBeVisible();
   await expect(page.getByRole("button", { name: /Execute search/i })).toBeDisabled();
